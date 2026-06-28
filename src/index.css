@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&family=Poppins:wght@500;600;700&family=Caveat:wght@600;700&family=Kalam:wght@700&family=Satisfy&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-wordmark: "Satisfy", cursive;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: #faf8f5; /* Warm, calm neutral tone, similar to Todoist */
+  background-attachment: fixed;
+  color: #0F172A;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+}
+
+/* Glassmorphic/Solid elegant card - refined to be clean white with soft border */
+.glass-card {
+  background-color: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+/* Sophisticated soft neutral shadows */
+.shadow-violet {
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0, 0, 0, 0.01);
+}
+
+.shadow-serenity {
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0, 0, 0, 0.01);
+}
+
+.shadow-rosequartz {
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0, 0, 0, 0.01);
+}
+
+/* Custom interactive animation for cards hover state */
+.hover-glass-card:hover {
+  background-color: #ffffff;
+  border-color: rgba(108, 92, 231, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+}
+
+/* Organic background float keyframes for abstract hero graphics */
+@keyframes float-gentle {
+  0%, 100% {
+    transform: translateY(0px) scale(1) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) scale(1.08) rotate(5deg);
+  }
+}
+
+@keyframes float-gentle-reverse {
+  0%, 100% {
+    transform: translateY(0px) scale(1.08) rotate(0deg);
+  }
+  50% {
+    transform: translateY(20px) scale(1) rotate(-5deg);
+  }
+}
+
+.animate-float-gentle {
+  animation: float-gentle 10s ease-in-out infinite;
+}
+
+.animate-float-gentle-reverse {
+  animation: float-gentle-reverse 12s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spin 20s linear infinite;
+}
+

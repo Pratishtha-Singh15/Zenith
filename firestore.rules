@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global safety net: default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ID Validation Helper
+    function isValidId(id) {
+      return id is string && id.size() >= 3 && id.size() <= 128;
+    }
+
+    // User Collection Rules
+    match /users/{userId} {
+      allow get: if isValidId(userId);
+      allow create, update: if isValidId(userId) 
+        && request.resource.data.id == userId
+        && request.resource.data.name is string && request.resource.data.name.size() <= 100
+        && request.resource.data.isGuest is bool;
+    }
+
+    // Commitments Collection Rules
+    match /commitments/{commitmentId} {
+      allow get: if isValidId(commitmentId);
+      allow list: if resource.data.userId != null;
+      allow create: if isValidId(commitmentId)
+        && request.resource.data.id == commitmentId
+        && isValidId(request.resource.data.userId)
+        && request.resource.data.title is string && request.resource.data.title.size() <= 200
+        && (request.resource.data.description == null || (request.resource.data.description is string && request.resource.data.description.size() <= 2000))
+        && request.resource.data.deadline is string && request.resource.data.deadline.size() <= 100
+        && request.resource.data.priority in ['low', 'medium', 'high', 'critical']
+        && request.resource.data.status in ['pending', 'in_progress', 'completed']
+        && request.resource.data.createdAt is string && request.resource.data.createdAt.size() <= 100;
+        
+      allow update: if isValidId(commitmentId)
+        && request.resource.data.id == commitmentId
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.title == resource.data.title
+        && request.resource.data.deadline == resource.data.deadline
+        && request.resource.data.priority == resource.data.priority
+        && request.resource.data.createdAt == resource.data.createdAt
+        && (request.resource.data.status in ['pending', 'in_progress', 'completed']);
+
+      allow delete: if isValidId(commitmentId);
+    }
+
+    // Tasks Collection Rules
+    match /tasks/{taskId} {
+      allow get: if isValidId(taskId);
+      allow list: if resource.data.commitmentId != null;
+      allow create: if isValidId(taskId)
+        && request.resource.data.id == taskId
+        && isValidId(request.resource.data.commitmentId)
+        && request.resource.data.title is string && request.resource.data.title.size() <= 200
+        && (request.resource.data.description == null || (request.resource.data.description is string && request.resource.data.description.size() <= 2000))
+        && request.resource.data.dueDate is string && request.resource.data.dueDate.size() <= 100
+        && request.resource.data.completed is bool
+        && request.resource.data.priority in ['low', 'medium', 'high', 'critical']
+        && request.resource.data.impactLevel in ['low', 'medium', 'high']
+        && request.resource.data.estimatedMinutes is int;
+        
+      allow update: if isValidId(taskId)
+        && request.resource.data.id == taskId
+        && request.resource.data.commitmentId == resource.data.commitmentId
+        && request.resource.data.title == resource.data.title
+        && request.resource.data.completed is bool;
+
+      allow delete: if isValidId(taskId);
+    }
+
+    // Messages Collection Rules
+    match /messages/{messageId} {
+      allow get: if isValidId(messageId);
+      allow list: if true;
+      allow create: if isValidId(messageId)
+        && request.resource.data.id == messageId
+        && isValidId(request.resource.data.userId)
+        && request.resource.data.sender in ['user', 'assistant']
+        && request.resource.data.text is string && request.resource.data.text.size() <= 10000
+        && request.resource.data.createdAt is string && request.resource.data.createdAt.size() <= 100;
+    }
+  }
+}

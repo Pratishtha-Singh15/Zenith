@@ -1,0 +1,84 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Represents a guest user profile.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique user ID" },
+        "name": { "type": "string", "description": "Display name" },
+        "isGuest": { "type": "boolean", "description": "Flag indicating if user is a guest" }
+      },
+      "required": ["id", "name", "isGuest"]
+    },
+    "Commitment": {
+      "title": "Commitment",
+      "description": "A commitment or deadline goal.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "deadline": { "type": "string" },
+        "availableTime": { "type": "string" },
+        "priority": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+        "progress": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "in_progress", "completed"] },
+        "createdAt": { "type": "string" },
+        "summary": { "type": "string" },
+        "milestones": { "type": "array" },
+        "priorityLogic": { "type": "string" }
+      },
+      "required": ["id", "userId", "title", "deadline", "priority", "status", "createdAt"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "An action task belonging to a commitment.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "commitmentId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "dueDate": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "priority": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+        "impactLevel": { "type": "string", "enum": ["low", "medium", "high"] },
+        "estimatedMinutes": { "type": "number" }
+      },
+      "required": ["id", "commitmentId", "title", "completed", "priority", "impactLevel", "estimatedMinutes"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "A coach chat message sent by the user or assistant.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "sender": { "type": "string", "enum": ["user", "assistant"] },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "sender", "text", "createdAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "commitments/{commitmentId}": {
+      "schema": "Commitment",
+      "description": "User commitments"
+    },
+    "tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Actionable tasks"
+    },
+    "messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Coach chat history"
+    }
+  }
+}
