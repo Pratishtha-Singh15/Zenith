@@ -31,7 +31,8 @@ import {
   RotateCcw,
   Trash2,
   MountainSnow,
-  ChevronDown
+  ChevronDown,
+  HelpCircle
 } from 'lucide-react';
 import { 
   getOrCreateGuestUser, 
@@ -66,6 +67,10 @@ const FAQ_ITEMS = [
   {
     q: "Is this only for students?",
     a: "No. Zenith is built for students, professionals, and entrepreneurs alike — anything from interview prep to client deliverables to bill payments works the same way."
+  },
+  {
+    q: "What if it's the last minute and I don't even know where to start?",
+    a: "That's exactly what Need Help is for. Click it on any task, and you'll instantly get the key questions to think through, a simple structure to follow, and one clear next step — so you can stop panicking and start moving, even with zero time left."
   }
 ];
 
@@ -132,6 +137,57 @@ export default function App() {
   const [showReplanModal, setShowReplanModal] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  // Task Help states
+  const [showTaskHelpModal, setShowTaskHelpModal] = useState(false);
+  const [helpTask, setHelpTask] = useState<Task | null>(null);
+  const [taskHelpLoading, setTaskHelpLoading] = useState(false);
+  const [taskHelpError, setTaskHelpError] = useState<string | null>(null);
+  const [taskHelpData, setTaskHelpData] = useState<{
+    opener: string;
+    keyQuestions: string[];
+    startingStructure: string[];
+    nextAction: string;
+  } | null>(null);
+
+  const handleGetTaskHelp = async (task: Task) => {
+    // Find parent commitment
+    const parentCommitment = commitments.find(c => c.id === task.commitmentId);
+    
+    setHelpTask(task);
+    setTaskHelpData(null);
+    setTaskHelpError(null);
+    setTaskHelpLoading(true);
+    setShowTaskHelpModal(true);
+
+    try {
+      const response = await fetch('/api/task-help', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: task.title,
+          description: task.description,
+          priority: task.priority,
+          commitmentTitle: parentCommitment ? parentCommitment.title : '',
+          commitmentDescription: parentCommitment ? parentCommitment.description : '',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch starting point helper from server');
+      }
+
+      const data = await response.json();
+      setTaskHelpData(data);
+    } catch (error: any) {
+      console.error('Error fetching task starting point helper:', error);
+      setTaskHelpError(error.message || 'An error occurred while fetching starting point help.');
+    } finally {
+      setTaskHelpLoading(false);
+    }
+  };
 
   const handleOpenReplanModal = (task: Task) => {
     setReplanTask(task);
@@ -1620,6 +1676,113 @@ export default function App() {
                     </div>
                   </div>
                 </section>
+
+                {/* SECTION 4 — Stuck? Don't panic. Just ask. */}
+                <section 
+                  id="section-guidance" 
+                  className="w-full min-h-screen flex flex-col justify-center py-32 sm:py-40 px-6 sm:px-8 relative"
+                >
+                  <div className="max-w-6xl mx-auto w-full relative z-10">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+                      
+                      {/* Text block (Left) */}
+                      <div className="lg:col-span-5 space-y-6 text-left order-2 lg:order-1">
+                        <div className="inline-flex items-center gap-1.5 bg-[#F0EEFF] text-[#6C5CE7] text-[10px] font-mono uppercase font-bold px-3 py-1.5 rounded-full tracking-wider border border-[#D9D6FF]/50">
+                          04 / GUIDANCE
+                        </div>
+                        <h3 className="font-display font-medium text-4xl sm:text-5xl md:text-6xl text-slate-900 tracking-tight leading-[1.1]">
+                          Stuck? Don't panic. Just ask.
+                        </h3>
+                        <p className="text-slate-500 text-base sm:text-lg md:text-xl leading-relaxed max-w-xl">
+                          When you don't know where to start, Need Help gives you a clear starting point — the right questions to ask, a simple structure to follow, and one next step to take right now. Not a finished answer, just enough to get moving.
+                        </p>
+                      </div>
+
+                      {/* Visual Screen Replica (Right) */}
+                      <div className="lg:col-span-7 flex justify-center order-1 lg:order-2">
+                        <div className="rounded-2xl border border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:shadow-[0_30px_70px_rgba(108,92,231,0.12)] transition-all duration-500 hover:-translate-y-1.5 overflow-hidden bg-white max-w-md w-full">
+                          {/* Mock Modal Header */}
+                          <div className="bg-[#0F172A] text-white p-4 flex justify-between items-center">
+                            <div className="flex items-center gap-1.5">
+                              <Sparkles className="w-4 h-4 text-[#A29BFE]" />
+                              <span className="font-display font-extrabold text-sm">AI Starting Assistant</span>
+                            </div>
+                            <div className="w-1.5 h-1.5 rounded-full bg-slate-500"></div>
+                          </div>
+
+                          {/* Mock Modal Body */}
+                          <div className="p-4 space-y-4 text-left font-sans">
+                            {/* Task details */}
+                            <div>
+                              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider font-mono">Task</span>
+                              <h4 className="font-display font-extrabold text-xs text-slate-900">Research Competitor Pricing</h4>
+                              <p className="text-[10px] text-slate-500">Compare top 3 direct competitors to establish baseline market positioning.</p>
+                            </div>
+
+                            {/* Opener */}
+                            <div className="bg-[#F0EEFF]/60 border-l-4 border-[#6C5CE7] p-3 rounded-r-xl">
+                              <p className="text-[11px] text-slate-700 italic leading-relaxed">
+                                "It's totally normal to feel stuck here. Let's strip away the noise and start with what we actually need to answer."
+                              </p>
+                            </div>
+
+                            {/* Key Questions */}
+                            <div className="space-y-1.5">
+                              <h5 className="text-[9px] font-bold text-[#6C5CE7] uppercase tracking-wider font-mono flex items-center gap-1">
+                                <Target className="w-3.5 h-3.5 text-[#6C5CE7]" />
+                                <span>Key Questions to Figure Out</span>
+                              </h5>
+                              <ul className="space-y-1">
+                                {[
+                                  "What tier is their most popular package and how much does it cost?",
+                                  "What features are locked behind their enterprise tier?",
+                                  "Do they offer a free tier, and what are its exact limits?"
+                                ].map((q, idx) => (
+                                  <li key={idx} className="flex items-start gap-1.5 text-[10px] text-slate-600 leading-normal bg-slate-50 p-1.5 rounded border border-slate-150">
+                                    <span className="w-3.5 h-3.5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[8px] font-mono font-bold shrink-0">?</span>
+                                    <span>{q}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+
+                            {/* Starting Structure */}
+                            <div className="space-y-1.5">
+                              <h5 className="text-[9px] font-bold text-[#6C5CE7] uppercase tracking-wider font-mono flex items-center gap-1">
+                                <Lightbulb className="w-3.5 h-3.5 text-[#6C5CE7]" />
+                                <span>Starting Structure</span>
+                              </h5>
+                              <div className="space-y-1">
+                                {[
+                                  "1. Identify top 3 direct competitor sites and locate their pricing pages",
+                                  "2. Create a basic spreadsheet with columns for price, tiers, and limits",
+                                  "3. Note down the primary focus value proposition of each brand"
+                                ].map((step, idx) => (
+                                  <div key={idx} className="flex items-start gap-1.5 text-[10px] text-slate-700 bg-slate-50/50 p-2 rounded border border-slate-150">
+                                    <div className="w-3.5 h-3.5 rounded-full border border-slate-300 shrink-0 mt-0.5"></div>
+                                    <span className="leading-normal">{step}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Next Action */}
+                            <div className="bg-slate-900 text-white p-3 rounded-lg space-y-1">
+                              <div className="flex items-center gap-1">
+                                <Sparkles className="w-3 h-3 text-[#A29BFE]" />
+                                <span className="text-[8px] font-bold uppercase tracking-wider text-[#A29BFE] font-mono">Next Action</span>
+                              </div>
+                              <p className="text-[10px] font-semibold text-slate-200">
+                                Open a browser tab and find the pricing page for your first competitor.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                </section>
               </div>
 
                 {/* FAQ Section */}
@@ -2298,7 +2461,19 @@ export default function App() {
                                   }`}>{task.description}</p>
 
                                   {!task.completed && (
-                                    <div className="pt-2 flex justify-end">
+                                    <div className="pt-2 flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                                      <button
+                                        id={`btn-dashboard-help-task-${task.id}`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleGetTaskHelp(task);
+                                        }}
+                                        className="inline-flex items-center space-x-1.5 px-2.5 py-1 text-[11px] font-semibold text-[#6C5CE7] bg-[#F0EEFF] hover:bg-[#D9D6FF] border border-[#D9D6FF] rounded-lg transition-all cursor-pointer"
+                                      >
+                                        <HelpCircle className="w-3.5 h-3.5" />
+                                        <span>Need Help?</span>
+                                      </button>
+
                                       <button
                                         id={`btn-cant-complete-${task.id}`}
                                         onClick={(e) => {
@@ -2568,11 +2743,11 @@ export default function App() {
             >
               <div className="space-y-1">
                 <button
-                  onClick={() => setCurrentView('landing')}
+                  onClick={() => setCurrentView('dashboard')}
                   className="inline-flex items-center space-x-1 text-xs font-semibold text-slate-500 hover:text-[#6C5CE7] transition-colors cursor-pointer"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
-                  <span>Back to Home</span>
+                  <span>Back to Dashboard</span>
                 </button>
                 <h2 className="text-xl sm:text-2xl font-display font-bold text-[#0F172A]">Add Commitment & Generate Plan</h2>
                 <p className="text-xs text-slate-500">Provide details about your goal. Gemini will craft an optimized sequential plan custom-fit to your timeline.</p>
@@ -2708,7 +2883,7 @@ export default function App() {
               {/* Back & Actions header */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <button
-                  onClick={() => setCurrentView('landing')}
+                  onClick={() => setCurrentView('dashboard')}
                   className="inline-flex items-center space-x-1.5 text-xs font-semibold text-slate-500 hover:text-[#6C5CE7] transition-colors cursor-pointer"
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -2949,7 +3124,19 @@ export default function App() {
                             }`}>{task.description}</p>
 
                             {!task.completed && (
-                              <div className="pt-2 flex justify-end">
+                              <div className="pt-2 flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  id={`btn-help-task-${task.id}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleGetTaskHelp(task);
+                                  }}
+                                  className="inline-flex items-center space-x-1.5 px-2.5 py-1 text-[11px] font-semibold text-[#6C5CE7] bg-[#F0EEFF] hover:bg-[#D9D6FF] border border-[#D9D6FF] rounded-lg transition-all cursor-pointer"
+                                >
+                                  <HelpCircle className="w-3.5 h-3.5" />
+                                  <span>Need Help?</span>
+                                </button>
+
                                 <button
                                   id={`btn-plan-cant-complete-${task.id}`}
                                   onClick={(e) => {
@@ -3366,6 +3553,19 @@ export default function App() {
                                           {t.priority}
                                         </span>
                                       </div>
+
+                                      {!t.completed && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleGetTaskHelp(t);
+                                          }}
+                                          className="w-full mt-1.5 py-1.5 bg-[#F0EEFF] hover:bg-[#D9D6FF] text-[#6C5CE7] text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer border border-[#D9D6FF]"
+                                        >
+                                          <HelpCircle className="w-3.5 h-3.5" />
+                                          <span>Need Help?</span>
+                                        </button>
+                                      )}
 
                                       {parentCommitment && (
                                         <button
@@ -3834,6 +4034,159 @@ export default function App() {
                     Confirm & Apply New Plan
                   </button>
                 )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Starting Scaffold / Need Help? Modal */}
+      <AnimatePresence>
+        {showTaskHelpModal && helpTask && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 sm:p-6"
+            id="task-help-modal-backdrop"
+            onClick={() => setShowTaskHelpModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 15, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.95, y: 15, opacity: 0 }}
+              transition={{ type: 'spring', duration: 0.4 }}
+              className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]"
+              id="task-help-modal-content"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="bg-[#0F172A] text-white p-6 flex justify-between items-center shrink-0">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-[#A29BFE]" />
+                  <h3 className="font-display font-extrabold text-lg">AI Starting Assistant</h3>
+                </div>
+                <button
+                  onClick={() => setShowTaskHelpModal(false)}
+                  className="p-1 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 overflow-y-auto space-y-6">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">
+                    Task you want to start
+                  </span>
+                  <h4 className="font-display font-extrabold text-base text-slate-900 mt-1">
+                    {helpTask.title}
+                  </h4>
+                  {helpTask.description && (
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      {helpTask.description}
+                    </p>
+                  )}
+                </div>
+
+                {taskHelpLoading && (
+                  <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                    <Loader2 className="w-10 h-10 animate-spin text-[#6C5CE7]" />
+                    <div className="text-center space-y-1">
+                      <p className="text-sm font-bold text-slate-700 animate-pulse">Building starting scaffolding...</p>
+                      <p className="text-xs text-slate-400 font-medium">Clearing the clutter and laying down a simple path.</p>
+                    </div>
+                  </div>
+                )}
+
+                {taskHelpError && (
+                  <div className="bg-rose-50 border border-rose-200 p-5 rounded-xl space-y-3">
+                    <div className="flex items-start gap-2.5">
+                      <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <h5 className="font-bold text-rose-800 text-xs">Failed to Load Scaffold</h5>
+                        <p className="text-[11px] text-rose-600 leading-relaxed">{taskHelpError}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleGetTaskHelp(helpTask)}
+                      className="w-full py-2 bg-[#6C5CE7] hover:bg-[#5b4ec2] text-white font-bold text-xs rounded-lg transition-all"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                )}
+
+                {taskHelpData && !taskHelpLoading && (
+                  <div className="space-y-6">
+                    {/* Encouraging Opener */}
+                    <div className="bg-[#F0EEFF]/60 border-l-4 border-[#6C5CE7] p-4 rounded-r-xl">
+                      <p className="text-xs sm:text-sm text-slate-700 italic leading-relaxed">
+                        "{taskHelpData.opener}"
+                      </p>
+                    </div>
+
+                    {/* Key Things to Figure Out */}
+                    <div className="space-y-2.5">
+                      <h5 className="text-[11px] font-bold text-[#6C5CE7] uppercase tracking-widest font-mono flex items-center gap-1.5">
+                        <Target className="w-4 h-4 text-[#6C5CE7]" />
+                        <span>Key Things to Figure Out</span>
+                      </h5>
+                      <ul className="space-y-2">
+                        {taskHelpData.keyQuestions.map((q, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-xs text-slate-600 leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-150">
+                            <span className="w-4.5 h-4.5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] font-mono font-bold shrink-0">
+                              ?
+                            </span>
+                            <span>{q}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Simple Starting Structure */}
+                    <div className="space-y-2.5">
+                      <h5 className="text-[11px] font-bold text-[#6C5CE7] uppercase tracking-widest font-mono flex items-center gap-1.5">
+                        <Lightbulb className="w-4 h-4 text-[#6C5CE7]" />
+                        <span>Starting Structure / Scaffolding</span>
+                      </h5>
+                      <div className="space-y-2">
+                        {taskHelpData.startingStructure.map((step, idx) => (
+                          <div key={idx} className="flex items-start gap-2.5 text-xs text-slate-700 bg-slate-50/50 p-3 rounded-xl border border-slate-150">
+                            <div className="w-4 h-4 rounded-full border-2 border-slate-300 mt-0.5 shrink-0"></div>
+                            <span className="leading-relaxed">{step}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Very Next Concrete Action */}
+                    <div className="bg-slate-900 text-white p-4.5 rounded-xl border border-slate-800 space-y-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-[#A29BFE]" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-[#A29BFE] font-mono">
+                          Do This First Right Now
+                        </span>
+                      </div>
+                      <p className="text-xs sm:text-sm font-semibold text-slate-100 leading-relaxed">
+                        {taskHelpData.nextAction}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="bg-slate-50 p-6 border-t border-slate-150 flex justify-end shrink-0">
+                <button
+                  onClick={() => setShowTaskHelpModal(false)}
+                  className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm w-full sm:w-auto"
+                >
+                  Close & Get Started
+                </button>
               </div>
             </motion.div>
           </motion.div>

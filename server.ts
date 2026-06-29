@@ -459,6 +459,113 @@ app.post('/api/coach-chat', async (req, res) => {
   }
 });
 
+// API route for "Need Help?" starting scaffolding
+app.post('/api/task-help', async (req, res) => {
+  const { title, description, priority, commitmentTitle, commitmentDescription } = req.body;
+
+  if (!title) {
+    return res.status(400).json({ error: 'Task title is required.' });
+  }
+
+  const prompt = `The user is feeling overwhelmed and needs help starting this task right now. Task: ${title} — ${description || 'No description provided'}. This is part of the commitment: ${commitmentTitle || 'No commitment title'} — ${commitmentDescription || 'No commitment description'}. Give them a structured starting point (key questions to figure out, a simple outline or checklist, and one clear next action) to help them begin immediately. Do NOT write the finished work for them — give them the scaffolding to do it themselves, faster and with less panic. Keep the tone warm and calm, plain language, no jargon. Return ONLY valid JSON with: opener (string), keyQuestions (array of strings), startingStructure (array of strings), nextAction (string).`;
+
+  const schema = {
+    type: Type.OBJECT,
+    properties: {
+      opener: {
+        type: Type.STRING,
+        description: "A short, encouraging opening line acknowledging this can feel overwhelming, then getting straight to practical help."
+      },
+      keyQuestions: {
+        type: Type.ARRAY,
+        items: { type: Type.STRING },
+        description: "3-4 specific questions or subtopics this task actually requires to figure out."
+      },
+      startingStructure: {
+        type: Type.ARRAY,
+        items: { type: Type.STRING },
+        description: "A simple starting structure - a short outline, checklist, or first-step breakdown."
+      },
+      nextAction: {
+        type: Type.STRING,
+        description: "One sentence suggesting the very next concrete action to take right now."
+      }
+    },
+    required: ['opener', 'keyQuestions', 'startingStructure', 'nextAction']
+  };
+
+  const getFallbackHelp = () => ({
+    opener: `It is completely normal to feel overwhelmed when tackling "${title}". Let's clear the noise and take a simple first step together.`,
+    keyQuestions: [
+      "What is the single most important question you need to answer to make progress?",
+      "What information or resources do you already have, and what is missing?",
+      "What does a 'good enough' first draft look like?",
+      "Identify the one thing blocking you most right now."
+    ],
+    startingStructure: [
+      "1. Clarify the core requirement (Write down a 1-sentence definition of done)",
+      "2. Brainstorm raw ideas (Write for 5 minutes without editing yourself)",
+      "3. Group and organize (Put those ideas into a basic order)",
+      "4. Polish (Refine and format the final output)"
+    ],
+    nextAction: "Grab a piece of paper or open a blank document, and write down the name of this task to begin."
+  });
+
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  const generateWithRetry = async (attempt = 1): Promise<any> => {
+    let responseText = null;
+    const modelToUse = attempt === 1 
+      ? 'gemini-3.1-flash-lite' 
+      : (attempt === 2 ? 'gemini-3.5-flash' : 'gemini-flash-latest');
+    try {
+      console.log(`Generating task starting point using model: ${modelToUse} (attempt ${attempt})...`);
+      const response = await ai.models.generateContent({
+        model: modelToUse,
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: schema,
+          temperature: 0.7,
+        },
+      });
+
+      responseText = response.text;
+      if (!responseText) {
+        throw new Error('Empty response from Gemini API');
+      }
+
+      const parsed = parseGeminiJson(responseText);
+      // Validate structure roughly to ensure it matches
+      if (!parsed.opener || !Array.isArray(parsed.keyQuestions) || !Array.isArray(parsed.startingStructure) || !parsed.nextAction) {
+        throw new Error('Response JSON is missing required fields');
+      }
+      
+      // Log successful generation
+      logGeminiDebug({ title, description, priority, commitmentTitle, commitmentDescription, attempt, modelUsed: modelToUse }, responseText, null);
+      return parsed;
+    } catch (err) {
+      console.error(`Gemini task help generation attempt ${attempt} with ${modelToUse} failed:`, err);
+      logGeminiDebug({ title, description, priority, commitmentTitle, commitmentDescription, attempt, modelUsed: modelToUse }, responseText, err);
+      if (attempt < 3) {
+        const nextDelay = attempt * 1000;
+        console.log(`Waiting ${nextDelay}ms before retry attempt ${attempt + 1}...`);
+        await delay(nextDelay);
+        return generateWithRetry(attempt + 1);
+      }
+      throw err;
+    }
+  };
+
+  try {
+    const helpData = await generateWithRetry(1);
+    res.json(helpData);
+  } catch (err) {
+    console.error('All attempts to generate task help via Gemini failed. Serving fallback.');
+    res.json(getFallbackHelp());
+  }
+});
+
 async function startServer() {
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
